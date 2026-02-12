@@ -28,3 +28,4 @@ jobs:
       with:
         name: stm32-firmware
         path: output/*
+
