@@ -29,3 +29,23 @@ jobs:
         name: stm32-firmware
         path: output/*
 
+    #aws credentials
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    #Upload ONLY .bin file to S3
+    - name: Upload .bin firmware to AWS S3
+      run: |
+        echo "Searching for .bin firmware file..."
+
+        BIN_FILE=$(find output -name "*.bin" | head -n 1)
+
+        echo "Found firmware file: $BIN_FILE"
+
+        aws s3 cp $BIN_FILE s3://${{ secrets.S3_BUCKET_NAME }}/firmware.bin
+
+        echo "✅ Firmware uploaded successfully to S3!"
