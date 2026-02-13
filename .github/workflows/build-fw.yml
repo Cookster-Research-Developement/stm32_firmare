@@ -16,7 +16,7 @@ jobs:
     - name: Install ARM toolchain
       run: |
         sudo apt update
-        sudo apt install -y gcc-arm-none-eabi binutils-arm-none-eabi python3
+        sudo apt install -y gcc-arm-none-eabi binutils-arm-none-eabi python3 make
 
     - name: Build firmware
       run: |
@@ -29,7 +29,13 @@ jobs:
         name: stm32-firmware
         path: output/*
 
-    #aws credentials
+    # ✅ Debug output folder
+    - name: Debug output folder
+      run: |
+        echo "Listing output folder contents:"
+        ls -R output
+
+    # ✅ AWS Credentials
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
@@ -37,15 +43,20 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ secrets.AWS_REGION }}
 
-    #Upload ONLY .bin file to S3
+    # ✅ Upload ONLY .bin file to S3
     - name: Upload .bin firmware to AWS S3
       run: |
         echo "Searching for .bin firmware file..."
 
         BIN_FILE=$(find output -name "*.bin" | head -n 1)
 
-        echo "Found firmware file: $BIN_FILE"
+        if [ -z "$BIN_FILE" ]; then
+          echo "❌ ERROR: No .bin file found inside output/"
+          exit 1
+        fi
 
-        aws s3 cp $BIN_FILE s3://${{ secrets.S3_BUCKET_NAME }}/firmware.bin
+        echo "✅ Found firmware file: $BIN_FILE"
 
-        echo "✅ Firmware uploaded successfully to S3!"
+        aws s3 cp "$BIN_FILE" s3://${{ secrets.S3_BUCKET_NAME }}/firmware.bin
+
+        echo "🔥 Firmware uploaded successfully to S3!"
