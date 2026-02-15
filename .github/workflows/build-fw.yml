@@ -47,16 +47,31 @@ jobs:
     - name: Upload .bin firmware to AWS S3
       run: |
         echo "Searching for .bin firmware file..."
-
+    
         BIN_FILE=$(find output -name "*.bin" | head -n 1)
-
+    
         if [ -z "$BIN_FILE" ]; then
           echo "❌ ERROR: No .bin file found inside output/"
           exit 1
         fi
-
-        echo "✅ Found firmware file: $BIN_FILE"
-
+    
+        echo "Calculating local file hash..."
+        LOCAL_HASH=$(sha256sum "$BIN_FILE" | awk '{print $1}')
+    
+        echo "Downloading existing firmware from S3 (if exists)..."
+        aws s3 cp s3://${{ secrets.S3_BUCKET_NAME }}/firmware.bin existing.bin || true
+    
+        if [ -f existing.bin ]; then
+          REMOTE_HASH=$(sha256sum existing.bin | awk '{print $1}')
+        else
+          REMOTE_HASH="none"
+        fi
+    
+        if [ "$LOCAL_HASH" = "$REMOTE_HASH" ]; then
+          echo "⚡ Firmware unchanged. Skipping upload."
+          exit 0
+        fi
+    
+        echo "🔥 Firmware changed. Uploading..."
         aws s3 cp "$BIN_FILE" s3://${{ secrets.S3_BUCKET_NAME }}/firmware.bin
-
-        echo "🔥 Firmware uploaded successfully to S3!"
+    
