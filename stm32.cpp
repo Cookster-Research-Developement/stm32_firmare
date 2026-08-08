@@ -12,3 +12,4 @@ void ota_finish(uint32_t received_crc) {
         system_reset();
     }
 }
+
